@@ -9,9 +9,9 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import com.edutrain.busbooking.booking.repository.BookingRepository;
 
 @SpringBootApplication
-@EnableMongoRepositories(basePackageClasses=BookingRepository.class)
+@EnableMongoRepositories(basePackageClasses = BookingRepository.class)
 @EnableEurekaClient
-@ComponentScan(basePackages="com.edutrain.busbooking.controller,com.edutrain.busbooking.model")
+@ComponentScan(basePackages = "com.edutrain.busbooking.booking.controller,com.edutrain.busbooking.booking.model,com.edutrain.busbooking.booking.repository")
 public class BookingServiceApplication {
 
 	public static void main(String[] args) {

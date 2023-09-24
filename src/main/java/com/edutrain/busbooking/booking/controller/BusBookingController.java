@@ -19,7 +19,7 @@ import com.edutrain.busbooking.booking.model.BookingModelWrapper;
 import com.edutrain.busbooking.booking.repository.BookingRepository;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/booking")
 public class BusBookingController {
 
 	@Autowired

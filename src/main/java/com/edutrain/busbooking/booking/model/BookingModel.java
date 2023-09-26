@@ -9,8 +9,9 @@ import org.springframework.stereotype.Component;
 @Document("BookingDtls")
 public class BookingModel {
 	
-	private  String bookingNo;
+	
 	private String busNo;
+	private  String bookingNo;
 	private Date bookingDate;
 	private String Source;
 	private String Destination;

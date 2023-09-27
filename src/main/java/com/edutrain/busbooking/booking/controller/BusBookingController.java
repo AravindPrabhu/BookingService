@@ -2,12 +2,15 @@ package com.edutrain.busbooking.booking.controller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsMessagingTemplate;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,13 +21,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.JMSException;
+
+
 import com.edutrain.busbooking.booking.model.BookPayment;
-import com.edutrain.busbooking.booking.model.BusRoute;
-import com.edutrain.busbooking.booking.model.BookingModel;
 import com.edutrain.busbooking.booking.model.BookSeats;
+import com.edutrain.busbooking.booking.model.BookingModel;
 import com.edutrain.busbooking.booking.model.BookingModelWrapper;
+import com.edutrain.busbooking.booking.model.BusRoute;
 import com.edutrain.busbooking.booking.model.InventoryModel;
+import com.edutrain.busbooking.booking.model.PassengerModel;
+import com.edutrain.busbooking.booking.model.PassengerModelWrapper;
 import com.edutrain.busbooking.booking.repository.BookingRepository;
+import com.edutrain.busbooking.booking.repository.PassengerRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,12 +52,21 @@ public class BusBookingController {
 
 	@Autowired
 	BookingModelWrapper bookingModelWrapper;
+	
+	@Autowired
+	PassengerModel passengerModel;
+	
+	@Autowired
+	PassengerModelWrapper passengerModelWrapper;
 
 	@Autowired
 	BookPayment bookPayment;
 
 	@Autowired
 	private final BookingRepository bookingRepository;
+	
+	@Autowired
+	private final PassengerRepository passengerRepository;
 
 	@Autowired
 	BookSeats bookSeats;
@@ -54,9 +76,13 @@ public class BusBookingController {
 
 	@Autowired
 	private JmsMessagingTemplate jmsMessagingTemplate;
+	
+	@Autowired
+	private JmsTemplate jmsTemplate;
 
-	public BusBookingController(BookingRepository bookingRepository) {
+	public BusBookingController(BookingRepository bookingRepository,PassengerRepository passengerRepository) {
 		this.bookingRepository = bookingRepository;
+		this.passengerRepository = passengerRepository;
 	}
 
 	@PostMapping("bookseats")
@@ -69,18 +95,14 @@ public class BusBookingController {
 
 		if (Integer.parseInt(inventoryModel.getAvailableSeats()) >= Integer.parseInt(bookSeats.getNoOfSeats())) {
 			
-			ObjectMapper objectMapper = new ObjectMapper();
-			try {
-				bookingModel= objectMapper.readValue(bookSeats.getBusNo(),BookingModel.class);
-			} catch (JsonMappingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			Random rand = new Random();
+			bookingModel.setBookingNo(String.valueOf(rand.nextInt(10000000)));
+			System.out.println("Booking number in Booking controller"+bookingModel.getBookingNo());
+			bookingModel.setBookingDate(java.time.LocalDate.now());
+			System.out.println("Date  in Booking controller"+bookingModel.getBookingDate());
+			bookingModel.setStatus("PENDING");
+			bookingModel.setBusNo(bookSeats.getBusNo());			
 			
-			bookingModel.setStatus("PENDIND");
 			
 			bookPayment.setBookingNo(bookingModel.getBookingNo());
 			bookPayment.setBusNo(bookSeats.getBusNo());
@@ -88,13 +110,26 @@ public class BusBookingController {
 			bookPayment.setPassengerId(bookSeats.getPassengerId());
 			bookPayment.setPassengerName(bookSeats.getPassengerName());
 			
+			
 			/*Get price from Admin Service */		
 			
 			String adminServiceUrl = "http://localhost:8731/busroutes/getbusroute/" + bookSeats.getBusNo();
 			busRoute= restTemplate.getForObject(adminServiceUrl, BusRoute.class);
-			bookPayment.setPrice(busRoute.getBusNo());			
+			bookPayment.setPrice(busRoute.getBusNo());	
+			bookingModel.setSource(busRoute.getSource());
+			bookingModel.setDestination(busRoute.getDestination());
+			
+			editBooking(bookingModel);
 						
-			jmsMessagingTemplate.convertAndSend("BookingToPayment", bookPayment);
+			//jmsMessagingTemplate.convertAndSend("BookingToPayment", bookPayment);
+			
+			/*
+			 * jmsMessagingTemplate.convertAndSend("BookingToPayment",new MessageCreator() {
+			 * 
+			 * });
+			 */
+			
+			sendMessage(bookPayment);
 
 			return "Ticket Booking in progress";
 
@@ -104,6 +139,30 @@ public class BusBookingController {
 
 		
 	}
+	
+	
+	public void sendMessage(final BookPayment bookPayment) {
+		
+		jmsTemplate.setDefaultDestinationName("BookingToPayment");
+		jmsTemplate.send(new MessageCreator() {
+
+			@Override
+			public Message createMessage(Session session) throws JMSException {
+
+				ObjectMessage objectMessage = session.createObjectMessage(bookPayment);
+				return objectMessage;
+			}
+			
+			
+			
+		});
+		
+		
+	}
+	
+	
+	
+	
 
 	@GetMapping("/getallbookings")
 	public List<String> getAllBookings() {
@@ -243,8 +302,46 @@ public class BusBookingController {
 		
 		bookingModel.setStatus("CONFIRMED");
 		/* Updating Booking confirmed Status */
+		
+		bookPayment.getPassengerId();
+		bookPayment.getPassengerName();
+		bookPayment.getBookingNo();
+		
+		
 
 		return "Ticket Booked Successfullly";
+
+	}
+	
+	
+	@PostMapping("/addpassenger")
+	public String addPassenger(@RequestBody PassengerModel passengerModel) {
+
+		String bookingNo = passengerModel.getBookingNo();
+		System.out.println("bookingNo in addPassenger is " + bookingNo);
+
+		// BusData busData= new BusData();
+		passengerModelWrapper.setBookingNo(bookingNo);
+		passengerModelWrapper.setPassengerModel(passengerModel);
+
+		try {
+			PassengerModelWrapper retValue=null;
+			try {
+				retValue = passengerRepository.save(passengerModelWrapper);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			if (retValue != null) {
+				return "Passenger Added successfully";
+			} else {
+				return "There is an error in adding Booking";
+			}
+		} catch (Exception e) {
+
+			return "There is an error in adding Booking";
+		}
 
 	}
 

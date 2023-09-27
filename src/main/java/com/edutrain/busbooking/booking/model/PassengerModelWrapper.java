@@ -9,15 +9,15 @@ import org.springframework.data.annotation.Id;
 public class PassengerModelWrapper {
 	
 	@Id
-	private String passengerNo;
+	private String bookingNo;
 	private PassengerModel passengerModel;
 	
 	
-	public String getPassengerNo() {
-		return passengerNo;
+	public String getBookingNo() {
+		return bookingNo;
 	}
-	public void setPassengerNo(String passengerNo) {
-		this.passengerNo = passengerNo;
+	public void setBookingNo(String bookingNo) {
+		this.bookingNo = bookingNo;
 	}
 	public PassengerModel getPassengerModel() {
 		return passengerModel;

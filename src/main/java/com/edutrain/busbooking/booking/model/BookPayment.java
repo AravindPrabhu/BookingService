@@ -2,12 +2,13 @@ package com.edutrain.busbooking.booking.model;
 
 import java.io.Serializable;
 
-public class BookPayment implements Serializable{
+import org.springframework.stereotype.Component;
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -8109272578085567712L;
+@Component
+public class BookPayment implements Serializable {
+
+	
+	
 	private String bookingNo;
 	private String busNo;
 	private String passengerId;
@@ -62,5 +63,13 @@ public class BookPayment implements Serializable{
 	public void setNoOfSeats(String noOfSeats) {
 		this.noOfSeats = noOfSeats;
 	}
+
+	@Override
+	public String toString() {
+		return "BookPayment [bookingNo=" + bookingNo + ", busNo=" + busNo + ", passengerId=" + passengerId
+				+ ", passengerName=" + passengerName + ", price=" + price + ", noOfSeats=" + noOfSeats + "]";
+	}
+	
+	
 
 }

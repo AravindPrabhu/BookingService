@@ -7,8 +7,9 @@ import org.springframework.stereotype.Component;
 @Document("PassengerDtls")
 public class PassengerModel {
 	
-	private String passengerId;
 	private String bookingNo;
+	private String passengerId;	
+	private String passengerName;
 	
 	
 	public String getPassengerId() {
@@ -22,6 +23,13 @@ public class PassengerModel {
 	}
 	public void setBookingNo(String bookingNo) {
 		this.bookingNo = bookingNo;
+	}
+	public String getPassengerName() {
+		return passengerName;
+	}
+	public void setPassengerName(String passengerName) {
+		this.passengerName = passengerName;
 	}	
 
+	
 }

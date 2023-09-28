@@ -5,8 +5,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
@@ -21,13 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-import javax.jms.JMSException;
-
-
 import com.edutrain.busbooking.booking.model.BookPayment;
 import com.edutrain.busbooking.booking.model.BookSeats;
 import com.edutrain.busbooking.booking.model.BookingModel;
@@ -39,7 +37,6 @@ import com.edutrain.busbooking.booking.model.PassengerModelWrapper;
 import com.edutrain.busbooking.booking.repository.BookingRepository;
 import com.edutrain.busbooking.booking.repository.PassengerRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 
@@ -77,21 +74,36 @@ public class BusBookingController {
 	@Autowired
 	private JmsMessagingTemplate jmsMessagingTemplate;
 	
+	@LoadBalanced
+	RestTemplate loadBalanced  =new RestTemplate();
+	
 	@Autowired
 	private JmsTemplate jmsTemplate;
+	
+	
 
 	public BusBookingController(BookingRepository bookingRepository,PassengerRepository passengerRepository) {
 		this.bookingRepository = bookingRepository;
 		this.passengerRepository = passengerRepository;
+	
 	}
-
+	
+	
+	
 	@PostMapping("bookseats")
 	public String BookSeats(@RequestBody BookSeats bookSeats) {
 
 		// call inventory service to get avaialable number of seats
-		RestTemplate restTemplate = new RestTemplate();
+		
+		
 		String inventoryUrl = "http://localhost:8791/inventory/getinventory/" + bookSeats.getBusNo();
-		InventoryModel inventoryModel = restTemplate.getForObject(inventoryUrl, InventoryModel.class);
+		Object retObj = loadBalanced.getForObject(inventoryUrl, InventoryModel.class);
+		
+		if(retObj.getClass().equals(String.class)) {
+			return retObj.toString();
+		}
+		 
+		 InventoryModel inventoryModel = (InventoryModel) retObj;
 
 		if (Integer.parseInt(inventoryModel.getAvailableSeats()) >= Integer.parseInt(bookSeats.getNoOfSeats())) {
 			
@@ -114,7 +126,7 @@ public class BusBookingController {
 			/*Get price from Admin Service */		
 			
 			String adminServiceUrl = "http://localhost:8731/busroutes/getbusroute/" + bookSeats.getBusNo();
-			busRoute= restTemplate.getForObject(adminServiceUrl, BusRoute.class);
+			busRoute= loadBalanced.getForObject(adminServiceUrl, BusRoute.class);
 			bookPayment.setPrice(busRoute.getBusNo());	
 			bookingModel.setSource(busRoute.getSource());
 			bookingModel.setDestination(busRoute.getDestination());

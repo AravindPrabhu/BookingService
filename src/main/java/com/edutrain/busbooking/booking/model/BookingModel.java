@@ -1,6 +1,6 @@
 package com.edutrain.busbooking.booking.model;
 
-import java.time.LocalDate;
+
 import java.util.Date;
 
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -13,7 +13,7 @@ public class BookingModel {
 	
 	private String busNo;
 	private  String bookingNo;
-	private LocalDate bookingDate;
+	private Date bookingDate;
 	private String Source;
 	private String Destination;
 	private String noOfSeats;
@@ -31,10 +31,10 @@ public class BookingModel {
 	public void setBusNo(String busNo) {
 		this.busNo = busNo;
 	}
-	public LocalDate getBookingDate() {
+	public Date getBookingDate() {
 		return bookingDate;
 	}
-	public void setBookingDate(LocalDate bookingDate) {
+	public void setBookingDate(Date bookingDate) {
 		this.bookingDate = bookingDate;
 	}
 	public String getSource() {

@@ -9,6 +9,10 @@ public class BookPayment implements Serializable {
 
 	
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -146292736017476561L;
 	private String bookingNo;
 	private String busNo;
 	private String passengerId;
